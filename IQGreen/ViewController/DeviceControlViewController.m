@@ -36,32 +36,6 @@
 
 @property (nonatomic,strong) UIAlertController *linkAlc;
 
-//CurrentStateView
-@property (weak, nonatomic) IBOutlet UILabel *currentTempLabel;
-@property (weak, nonatomic) IBOutlet UILabel *currentHumidityLabel;
-@property (weak, nonatomic) IBOutlet UIImageView *currentTempImg;
-//SettingView
-@property (weak, nonatomic) IBOutlet UILabel *settingTempLabel;
-@property (weak, nonatomic) IBOutlet UILabel *settingHumidityLabel;
-@property (weak, nonatomic) IBOutlet UIImageView *settingTempImg;
-//OperationImage
-@property (weak, nonatomic) IBOutlet UIImageView *coolingImg;
-@property (weak, nonatomic) IBOutlet UIImageView *heatImg;
-@property (weak, nonatomic) IBOutlet UIImageView *heatingImg;
-//ControlBtn
-@property (weak, nonatomic) IBOutlet UIButton *powerBtn;
-@property (weak, nonatomic) IBOutlet UIButton *lightBtn;
-@property (weak, nonatomic) IBOutlet UIButton *defoggingBtn;
-@property (weak, nonatomic) IBOutlet UIButton *TempSwtichBtn;
-
-//Picker
-@property (weak, nonatomic) IBOutlet UIView *PickerView;
-@property (weak, nonatomic) IBOutlet UIPickerView *hourPicker;//温度picker
-@property (weak, nonatomic) IBOutlet UIPickerView *minutePicker;//湿度picker
-@property (weak, nonatomic) IBOutlet UILabel *unitLabel;
-
-@property (nonatomic, assign) int hourNum;//温度
-@property (nonatomic, assign) int minuteNum;//湿度
 @end
 
 @implementation DeviceControlViewController
@@ -478,7 +452,6 @@
 }
 
 #pragma mark - BtnAction
-
 - (IBAction)ControlBtnAction:(UIButton *)sender{
     switch (sender.tag) {
         case 1:
@@ -549,135 +522,6 @@
             break;
         default:
             break;
-    }
-}
-
-#pragma mark  - pickview delegate
-- (NSInteger)numberOfComponentsInPickerView:(UIPickerView *)pickerView
-{
-    return 1;
-}
-
-- (NSInteger)pickerView:(UIPickerView *)pickerView numberOfRowsInComponent:(NSInteger)component
-{
-    if (pickerView == self.hourPicker) {
-        return [hourArr count]*10;
-    }else{
-        return [minuteArr count]*10;
-    }
-    
-}
-
-- (NSString *)pickerView:(UIPickerView *)pickerView titleForRow:(NSInteger)row forComponent:(NSInteger)component
-{
-    if (pickerView == self.hourPicker) {
-        NSNumber *hourNum = [hourArr objectAtIndex:(row%[hourArr count])];
-        int hour = hourNum.intValue;
-        NSString *title = [NSString stringWithFormat:@"%.2d",hour];
-        return title;
-    }else{
-        NSNumber *minuteNum = [minuteArr objectAtIndex:(row%[minuteArr count])];
-        int minute = minuteNum.intValue;
-        NSString *title = [NSString stringWithFormat:@"%.2d",minute];
-        return title;
-    }
-    
-}
-
-- (void)pickerView:(UIPickerView *)pickerView didSelectRow:(NSInteger)row inComponent:(NSInteger)component
-{
-    
-    NSUInteger max = 0;
-    NSUInteger base10 = 0;
-    if (pickerView == self.hourPicker) {
-        
-        if(component == 0)
-        {
-            max = [hourArr count]*10;
-            base10 = (max/2)-(max/2)%[hourArr count];
-            [pickerView selectRow:[pickerView selectedRowInComponent:component]%[hourArr count]+base10 inComponent:component animated:false];
-            
-            NSNumber *hour = hourArr[row%hourArr.count];
-            self.hourNum = hour.intValue;
-            
-        }
-        
-    }else{
-        
-        if(component == 0)
-        {
-            max = [minuteArr count]*10;
-            base10 = (max/2)-(max/2)%[minuteArr count];
-            [pickerView selectRow:[pickerView selectedRowInComponent:component]%[minuteArr count]+base10 inComponent:component animated:false];
-            
-            NSNumber *minute = minuteArr[row%minuteArr.count];
-            self.minuteNum = minute.intValue;
-        }
-        
-    }
-    
-}
-
-- (UIView *)pickerView:(UIPickerView *)pickerView viewForRow:(NSInteger)row forComponent:(NSInteger)component reusingView:(UIView *)view {
-    
-    UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(12.0f, 0.0f, [pickerView rowSizeForComponent:component].width-12, [pickerView rowSizeForComponent:component].height)];
-    label.backgroundColor = [UIColor clearColor];
-    label.textAlignment = NSTextAlignmentCenter;
-    NSString *title;
-    if (pickerView == self.hourPicker) {
-        NSNumber *hourNum = [hourArr objectAtIndex:(row%[hourArr count])];
-        int hour = hourNum.intValue;
-        title = [NSString stringWithFormat:@"%d",hour];
-        
-    }else{
-        NSNumber *minuteNum = [minuteArr objectAtIndex:(row%[minuteArr count])];
-        int minute = minuteNum.intValue;
-        title = [NSString stringWithFormat:@"%d",minute];
-        
-    }
-    label.text = title;
-    
-    return label;
-}
-
--(void)setPickerDataArray{
-    hourArr = [NSMutableArray array];
-    for (int i = 5; i<20; i++) {
-        [hourArr addObject:@(i)];
-    }
-    [self.hourPicker selectRow:hourArr.count inComponent:0 animated:YES];
-    
-    minuteArr = [NSMutableArray array];
-    for (int i = 20; i< 99; i++) {
-        [minuteArr addObject:@(i)];
-    }
-    [self.minutePicker selectRow:minuteArr.count inComponent:0 animated:YES];
-}
-
-#pragma mark pickerViewBtnAction
-- (IBAction)PickerViewOKBtnAction:(id)sender {
-    if ([_unitLabel.text isEqualToString:@"%RH"]) {
-        //发送设置湿度
-        int humidityValue = _minuteNum;
-        [self.deviceModel.dataPoint[5] replaceBytesInRange:NSMakeRange(0,1) withBytes:&humidityValue length:1];
-        [SendPacketModel controlDevice:_deviceModel.device withSendData:_deviceModel.dataPoint[5] Command:0x06];
-    }else{
-        //发送设置温度
-        UInt8 tempValue = _hourNum;
-        [self.deviceModel.dataPoint[4] replaceBytesInRange:NSMakeRange(0,1) withBytes:&tempValue length:1];
-        [SendPacketModel controlDevice:_deviceModel.device withSendData:_deviceModel.dataPoint[4] Command:0x05];
-    }
-    _PickerView.hidden = YES;
-    if (_menuView.hidden == YES && _isOpen) {
-        _shadowView.hidden = YES;
-    }
-    
-}
-
-- (IBAction)PickerViewCancleBtnAction:(id)sender {
-    _PickerView.hidden = YES;
-    if (_menuView.hidden == YES && _isOpen) {
-        _shadowView.hidden = YES;
     }
 }
 
